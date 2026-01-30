@@ -1,3 +1,4 @@
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +15,7 @@ const MIMETypes = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
-  '.tsx': 'text/plain', // Serve as text for Babel
+  '.tsx': 'text/plain',
   '.ts': 'text/plain'
 };
 
@@ -24,7 +25,6 @@ const server = http.createServer((req, res) => {
     filePath = './index.html';
   }
 
-  // Handle extensionless imports (e.g. import App from './App')
   if (!path.extname(filePath) && filePath !== './') {
       if (fs.existsSync(filePath + '.tsx')) filePath += '.tsx';
       else if (fs.existsSync(filePath + '.ts')) filePath += '.ts';
@@ -37,7 +37,6 @@ const server = http.createServer((req, res) => {
   fs.readFile(filePath, (error, content) => {
     if (error) {
       if (error.code === 'ENOENT') {
-         // 404
          res.writeHead(404);
          res.end(`File not found: ${filePath}`);
       } else {
@@ -45,13 +44,11 @@ const server = http.createServer((req, res) => {
         res.end(`Server Error: ${error.code}`);
       }
     } else {
-      // Inject API Key into index.html so client-side code works
       if (extname === '.html') {
           let html = content.toString();
           const apiKey = process.env.API_KEY || '';
-          // Securely inject env var for the browser
-          const envScript = `<script>window.process = { env: { API_KEY: '${apiKey}' } };</script>`;
-          html = html.replace('</head>', `${envScript}</head>`);
+          const envScript = '<script>window.process = { env: { API_KEY: "' + apiKey + '" } };</script>';
+          html = html.replace('</head>', envScript + '</head>');
           res.writeHead(200, { 'Content-Type': 'text/html' });
           res.end(html);
       } else {

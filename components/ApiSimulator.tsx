@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Language, VoiceAnalysisResponse } from '../types';
 import { analyzeVoice } from '../services/geminiService';
@@ -75,8 +74,6 @@ const ApiSimulator: React.FC = () => {
       };
       setRequestJson(JSON.stringify(payload, null, 2));
 
-      await new Promise(r => setTimeout(r, 800));
-
       if (apiKey !== MOCK_VALID_API_KEY) {
         setResponse({ status: 'error', message: "Invalid API key or malformed request" });
       } else {
@@ -136,66 +133,87 @@ const ApiSimulator: React.FC = () => {
             </button>
           </div>
         </div>
+
         {requestJson && (
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg opacity-80">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">PAYLOAD PREVIEW</h3>
-            <pre className="bg-black/50 p-4 rounded-lg overflow-x-auto text-xs font-mono text-green-400 leading-relaxed">{requestJson}</pre>
+          <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden animate-fade-in shadow-xl">
+            <div className="bg-slate-800 px-4 py-2 border-b border-slate-700 text-xs text-slate-400 font-mono flex justify-between items-center">
+              <span>Outgoing JSON Payload</span>
+              <span className="text-blue-400">POST /api/voice-detection</span>
+            </div>
+            <pre className="p-4 text-xs font-mono text-blue-300 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
+              {requestJson}
+            </pre>
           </div>
         )}
       </div>
-      <div className="flex flex-col h-full">
-         <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-xl flex flex-col h-full overflow-hidden">
-            <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-              <h2 className="text-lg font-mono font-bold text-slate-200">Response Console</h2>
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+
+      <div className="flex flex-col gap-6">
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg h-full min-h-[400px]">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <svg className="h-5 w-5 text-teal-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+            Analysis Result
+          </h2>
+          
+          {!response && !loading && (
+            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-20 border-2 border-dashed border-slate-700 rounded-lg">
+              <svg className="w-12 h-12 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <p className="text-sm">Submit audio to see forensic breakdown</p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="h-full flex flex-col items-center justify-center py-20 space-y-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-10 h-10 border-4 border-teal-500/20 border-b-teal-500 rounded-full animate-spin-reverse"></div>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-blue-400 font-bold text-lg animate-pulse">Running Neural Scans</p>
+                <p className="text-slate-500 text-xs mt-2 uppercase tracking-widest">Checking for digital fingerprints...</p>
               </div>
             </div>
-            <div className="flex-1 p-6 font-mono relative overflow-auto">
-               {!response && !loading && <p className="text-slate-600 text-center mt-20">Waiting for request...</p>}
-               {loading && <div className="space-y-2 animate-pulse"><div className="h-4 bg-slate-800 rounded w-3/4"></div><div className="h-4 bg-slate-800 rounded w-1/2"></div><div className="h-4 bg-slate-800 rounded w-2/3"></div></div>}
-               {response && (
-                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">200 OK</span>
-                      <span className="text-slate-500 text-xs">{new Date().toLocaleTimeString()}</span>
-                    </div>
-                    <pre className="text-sm leading-relaxed whitespace-pre-wrap text-blue-300">
-                      {JSON.stringify(response, null, 2)}
-                    </pre>
-                    {response.status === 'success' && (
-                       <div className="mt-8 pt-6 border-t border-slate-800">
-                          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">VISUAL ANALYSIS</h4>
-                          <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-                              <span className="text-[10px] text-slate-500 uppercase block mb-1">Detected Language</span>
-                              <span className="text-white font-bold">{response.language}</span>
-                            </div>
-                            <div className={`p-4 rounded-lg border ${response.classification === 'AI_GENERATED' ? 'bg-red-900/20 border-red-500/50 text-red-400' : 'bg-green-900/20 border-green-500/50 text-green-400'}`}>
-                              <span className="text-[10px] uppercase block mb-1">Classification</span>
-                              <span className="text-lg font-bold block leading-none">{response.classification}</span>
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex justify-between items-end mb-2">
-                              <span className="text-[10px] text-slate-500 uppercase">Confidence Score</span>
-                              <span className="text-xs font-mono text-white">{(response.confidenceScore! * 100).toFixed(1)}%</span>
-                            </div>
-                            <div className="w-full bg-slate-800 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full transition-all duration-1000 ${response.classification === 'AI_GENERATED' ? 'bg-red-500' : 'bg-green-500'}`} 
-                                style={{width: `${response.confidenceScore! * 100}%`}}
-                              ></div>
-                            </div>
-                          </div>
-                       </div>
-                    )}
-                 </div>
-               )}
+          )}
+
+          {response && (
+            <div className="space-y-6 animate-fade-in">
+              <div className={`p-4 rounded-xl border-2 flex items-center gap-4 ${response.status === 'success' ? (response.classification === 'AI_GENERATED' ? 'bg-red-500/10 border-red-500/50' : 'bg-green-500/10 border-green-500/50') : 'bg-orange-500/10 border-orange-500/50'}`}>
+                <div className={`p-3 rounded-full ${response.classification === 'AI_GENERATED' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                  {response.classification === 'AI_GENERATED' ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase font-bold tracking-widest text-slate-400">Classification</p>
+                  <p className={`text-2xl font-black ${response.classification === 'AI_GENERATED' ? 'text-red-400' : 'text-green-400'}`}>
+                    {response.classification || 'Error'}
+                  </p>
+                </div>
+                <div className="ml-auto text-right">
+                  <p className="text-xs uppercase font-bold tracking-widest text-slate-400">Confidence</p>
+                  <p className="text-2xl font-black text-white">{Math.round((response.confidenceScore || 0) * 100)}%</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Forensic Explanation</h4>
+                  <p className="text-slate-300 leading-relaxed italic">"{response.explanation}"</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-950 rounded-lg p-3 border border-slate-800">
+                <h4 className="text-[10px] font-bold text-slate-600 uppercase mb-2">Full JSON Response</h4>
+                <pre className="text-[10px] font-mono text-teal-500 overflow-x-auto">
+                  {JSON.stringify(response, null, 2)}
+                </pre>
+              </div>
             </div>
-         </div>
+          )}
+        </div>
       </div>
     </div>
   );

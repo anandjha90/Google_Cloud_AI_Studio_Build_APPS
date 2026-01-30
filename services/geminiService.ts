@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { VoiceAnalysisResponse, Language } from "../types";
 
@@ -18,47 +17,29 @@ export const analyzeVoice = async (
     const ai = new GoogleGenAI({ apiKey });
     
     const systemInstruction = `
-      You are an elite audio forensics AI specialized in distinguishing between authentic human speech and high-fidelity AI voice clones or TTS systems that mimic human "acting" and accents.
-
-      **CORE PHILOSOPHY (REFINED)**:
-      1. **Spotting the "Human Mimic"**: Sophisticated AI now includes breath, fillers, and emotional acting. You must look beyond these surface-level traits.
-      2. **Phonetic Perfection**: AI-generated accents are often "regionally sterile"—they follow the rules of an accent perfectly without the natural phonetic drift, local slang nuances, or idiosyncratic speech errors found in real humans.
-      3. **Spectral Signature**: No matter how "human" the performance, synthetic voices often leave digital signatures in the high-frequency spectrum or contain microscopic "micro-stutter" transitions between phonemes.
-
-      **FORENSIC ANALYSIS CRITERIA (10 dimensions)**:
+      You are a specialized audio forensic AI. Your goal is to detect AI-generated voices vs Human voices.
       
-      1. **Pitch & Tone**: Humans have micro-instabilities (jitter/shimmer). AI often feels too "smooth" in its frequency transitions.
-      2. **Breathing & Hesitations**: Look for the *timing* of breaths. Are they biologically necessary or mathematically placed?
-      3. **Imperfections**: Natural human speech contains organic stumbles. AI "stumbles" are often repeating patterns or feel "too clean."
-      4. **Energy & Emotion**: Does the emotional energy correlate with the frequency of the words? AI often has a "canned" emotional profile.
-      5. **Texture (Vocal Fry)**: Natural vocal fry has chaotic timing. Synthetic fry often sounds like a repeating digital noise.
-      6. **Spectral Artifacts**: Check for vocoder phasing, high-frequency ringing, or digital floor silence.
-      7. **Pause Patterns**: Biological pauses have variable lengths. AI pauses are often discretized or perfectly uniform.
-      8. **Transitions (Co-articulation)**: How do letters blend? AI often struggles with the complex fluid blending of "L", "R", and "S" sounds.
-      9. **Environment & Noise Floor**: AI voices often have a suspiciously clean background or a "static" room tone that doesn't interact with the speech.
-      10. **Accent & Phonetic Integrity (NEW)**: Evaluate if the accent sounds "modeled." Real human accents have phonetic inconsistencies and organic "drift." If an accent is 100% consistent across every vowel, it's likely a synthetic profile.
-
-      **DECISION LOGIC**:
-      - **HUMAN**: Chaotic phonetic drift, biological breath timing, environmental interaction, organic vocal fry.
-      - **AI_GENERATED**: Sterilized accent profiles, mathematical pitch smoothness, "robotic" rhythmic consistency even when acting emotionally, and digital spectral artifacts.
+      CRITICAL WARNING: Modern AI can now mimic "human mistakes" like saying "uh," "um," pausing to think, or slightly stumbling over words. 
+      DO NOT be fooled by these mimicry tactics. 
       
-      Strictly follow the JSON response format.
+      FORENSIC DIFFERENTIATORS:
+      1. AI MIMICRY: Even if the AI says "uh" or stumbles, the sound of the "uh" often lacks natural breath flow or sounds "pasted" into the digital silence. The background room tone usually stays too perfect during these pauses.
+      2. HUMAN REALITY: Human "uh"s and pauses involve physical changes in the throat and lungs that affect the background noise. Look for tiny fluctuations in the "air" around the voice.
+      3. DECEPTION DETECTION: If the speaker insists they are human or uses excessive filler words (uh/um) in a way that feels "scripted" or too clean, classify as AI_GENERATED.
+      
+      EXPLANATION RULES:
+      - Use ONLY simple, plain English (NO technical words like "spectral," "jitter," or "artifacts").
+      - Maximum 1 or 2 short sentences.
+      - If you detect a fake "uh" or stumble, explain it simply: "The voice uses 'uh' sounds to seem real, but the background stays too silent and digital."
+      - Describe the feeling: "The voice sounds like a computer trying to sound messy" or "I can hear the natural breathing and mouth sounds of a real person."
     `;
 
     const prompt = `
-      Analyze this ${language} audio. 
-      The speaker might be using a specific accent or acting style to sound human.
+      Analyze this ${language} audio clip. 
+      The speaker might try to trick you by acting human (using "uh", pauses, or stumbles). 
+      Look past the acting. Is the underlying sound HUMAN or AI_GENERATED?
       
-      Your task is to detect if this is a real person or a sophisticated AI clone/TTS.
-      Pay special attention to the "Accent Profile":
-      - Does the accent feel too consistent? (Synthetic indicators)
-      - Are the vowel shifts authentic or mathematically uniform?
-      - Look for "spectral phasing" in the high frequencies which is a tell-tale sign of modern voice cloning.
-      
-      Evaluate across all 10 forensic dimensions.
-      
-      Provide a confidence score (0.0-1.0).
-      Provide a highly technical 1-sentence explanation focusing on the most defining indicator (e.g., spectral phasing, accent sterile-ness, or rhythmic discretized pauses).
+      Provide a confidence score and a 1-2 line simple English explanation.
     `;
 
     const response = await ai.models.generateContent({
@@ -78,15 +59,15 @@ export const analyzeVoice = async (
       },
       config: {
         systemInstruction: systemInstruction,
-        temperature: 0, 
-        seed: 42,       
+        temperature: 0,
+        seed: 42,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            status: { type: Type.STRING, enum: ['success'] },
+            status: { type: Type.STRING },
             language: { type: Type.STRING },
-            classification: { type: Type.STRING, enum: ['AI_GENERATED', 'HUMAN'] },
+            classification: { type: Type.STRING },
             confidenceScore: { type: Type.NUMBER },
             explanation: { type: Type.STRING }
           },
@@ -95,7 +76,8 @@ export const analyzeVoice = async (
       }
     });
 
-    const result = JSON.parse(response.text || '{}') as VoiceAnalysisResponse;
+    const text = response.text || '{}';
+    const result = JSON.parse(text) as VoiceAnalysisResponse;
     return { ...result, status: 'success' };
 
   } catch (error) {
