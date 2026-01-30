@@ -1,0 +1,5 @@
+{
+  "name": "VoiceGuard AI API",
+  "description": "A secure REST API simulator for detecting AI-generated voice samples across multiple languages.",
+  "requestFramePermissions": []
+}
