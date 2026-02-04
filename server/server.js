@@ -18,13 +18,15 @@ const app = express();
 const port = process.env.PORT || 3000;
 const externalApiBaseUrl = 'https://generativelanguage.googleapis.com';
 const externalWsBaseUrl = 'wss://generativelanguage.googleapis.com';
-const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+
+// Fix: The API key must be obtained exclusively from the environment variable process.env.API_KEY
+const apiKey = process.env.API_KEY;
 
 const staticPath = path.join(__dirname, 'dist');
 const publicPath = path.join(__dirname, 'public');
 
 if (!apiKey) {
-    console.error("Warning: GEMINI_API_KEY or API_KEY environment variable is not set! Proxy functionality will be disabled.");
+    console.error("Warning: API_KEY environment variable is not set! Proxy functionality will be disabled.");
 } else {
     console.log("API KEY FOUND (proxy will use this)");
 }

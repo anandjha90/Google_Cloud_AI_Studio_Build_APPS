@@ -67,10 +67,11 @@ const ApiSimulator: React.FC = () => {
 
     try {
       const base64Audio = await fileToBase64(file);
+      // Perfected Hackathon Payload Formatting
       const payload = {
-        language: selectedLanguage,
-        audioFormat: "mp3",
-        audioBase64: base64Audio.substring(0, 50) + "..."
+        language: selectedLanguage, // Tamil, English, etc.
+        audioFormat: "mp3",        // lowercase mp3 as required
+        audioBase64: base64Audio.substring(0, 80) + "..." // Preview for display
       };
       setRequestJson(JSON.stringify(payload, null, 2));
 
@@ -137,7 +138,7 @@ const ApiSimulator: React.FC = () => {
         {requestJson && (
           <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden animate-fade-in shadow-xl">
             <div className="bg-slate-800 px-4 py-2 border-b border-slate-700 text-xs text-slate-400 font-mono flex justify-between items-center">
-              <span>Outgoing JSON Payload</span>
+              <span>Outgoing Hackathon-Format JSON</span>
               <span className="text-blue-400">POST /api/voice-detection</span>
             </div>
             <pre className="p-4 text-xs font-mono text-blue-300 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
@@ -206,7 +207,7 @@ const ApiSimulator: React.FC = () => {
               </div>
 
               <div className="bg-slate-950 rounded-lg p-3 border border-slate-800">
-                <h4 className="text-[10px] font-bold text-slate-600 uppercase mb-2">Full JSON Response</h4>
+                <h4 className="text-[10px] font-bold text-slate-600 uppercase mb-2">Evaluation-Compliant JSON Response</h4>
                 <pre className="text-[10px] font-mono text-teal-500 overflow-x-auto">
                   {JSON.stringify(response, null, 2)}
                 </pre>

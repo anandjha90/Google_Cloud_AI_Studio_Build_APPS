@@ -1,142 +1,125 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 
 const ServerCode: React.FC = () => {
-  const codeString = `
-import express from 'express';
-import bodyParser from 'body-parser';
-import { GoogleGenAI, Type } from '@google/genai';
+  const [copied, setCopied] = useState<{ [key: string]: boolean }>({});
+  const [currentOrigin, setCurrentOrigin] = useState('');
+  const [tempBase64, setTempBase64] = useState<string>('');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.API_KEY; // Your Gemini API Key
-const CLIENT_SECRET = "sk_test_123456789"; // The required x-api-key
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentOrigin(window.location.origin);
+    }
+  }, []);
 
-// Middleware
-app.use(bodyParser.json({ limit: '50mb' }));
+  const endpointUrl = `${currentOrigin}/api/voice-detection`;
 
-// Init Gemini
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied({ ...copied, [id]: true });
+    setTimeout(() => setCopied({ ...copied, [id]: false }), 2000);
+  };
 
-// System Instruction
-const SYSTEM_INSTRUCTION = \`
-  You are an expert audio forensics AI.
-  Evaluate 9 criteria:
-  1. Pitch/Tone Variations (Natural vs Flat)
-  2. Breathing & Hesitations (Present vs Absent)
-  3. Imperfections (Corrections/Slurring vs Perfect)
-  4. Emotion (Fluctuating vs Static)
-  5. Texture (Organic vs Smooth)
-  6. Artifacts (None vs Metallic/Phasing)
-  7. Pauses (Biological vs Grammatical)
-  8. Transitions (Complex vs Glitchy)
-  9. Environment (Room Tone vs Digital Silence)
-
-  Bias towards HUMAN (Acting/Impersonation = HUMAN).
-  Classify as AI only if mathematically perfect or contains artifacts.
-  Return strictly JSON.
-\`;
-
-app.post('/api/voice-detection', async (req, res) => {
-  // 1. Validate API Key
-  const clientKey = req.headers['x-api-key'];
-  if (clientKey !== CLIENT_SECRET) {
-    return res.status(401).json({
-      status: 'error',
-      message: 'Invalid API key or malformed request'
-    });
-  }
-
-  // 2. Validate Body
-  const { language, audioFormat, audioBase64 } = req.body;
-  if (!language || audioFormat !== 'mp3' || !audioBase64) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Invalid request body'
-    });
-  }
-
-  try {
-    // 3. Call Gemini Model
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } },
-          { text: \`Analyze this \${language} audio against 9 forensic criteria:
-                   Pitch, Breathing, Imperfections, Emotion, Texture, Artifacts, Pauses, Transitions, Environment.
-                   Determine if AI_GENERATED or HUMAN.
-                   Provide a simple 1-sentence explanation.\` }
-        ]
-      },
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0, // CRITICAL: Ensures result is consistent every time
-        seed: 42,       // CRITICAL: Fixed seed for deterministic output
-        responseMimeType: 'application/json',
-        responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              status: { type: Type.STRING, enum: ['success'] },
-              language: { type: Type.STRING },
-              classification: { type: Type.STRING, enum: ['AI_GENERATED', 'HUMAN'] },
-              confidenceScore: { type: Type.NUMBER },
-              explanation: { type: Type.STRING }
-            },
-            required: ['status', 'language', 'classification', 'confidenceScore', 'explanation']
-        }
-      }
-    });
-
-    const result = JSON.parse(response.text);
-    return res.json(result);
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Internal processing error'
-    });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(\`Server running on port \${PORT}\`);
-});
-`;
+  const handleBase64Convert = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Extracts the RAW Base64 string required by the hackathon tester
+        const base64 = (reader.result as string).split(',')[1];
+        setTempBase64(base64);
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-white mb-2">Server Implementation</h2>
-        <p className="text-slate-400">
-          Below is the complete Node.js / Express reference implementation to deploy this API to your own server.
-        </p>
+    <div className="max-w-5xl mx-auto space-y-8 pb-24 animate-fade-in">
+      {/* HACKATHON MISSION CONTROL */}
+      <div className="bg-gradient-to-br from-slate-900 to-[#0b1120] border border-blue-500/30 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full -mr-20 -mt-20"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="bg-blue-600 p-4 rounded-2xl shadow-xl shadow-blue-500/30">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-4xl font-black text-white tracking-tight">Deployment Dashboard</h2>
+              <p className="text-blue-400 font-medium tracking-wide uppercase text-xs">Live Submission Coordinates</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* COLUMN 1: ACCESS DETAILS */}
+            <div className="space-y-6">
+              <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 hover:border-blue-500/50 transition-all group">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Target Endpoint URL</span>
+                  <button onClick={() => copyToClipboard(endpointUrl, 'url')} className="text-[10px] font-bold text-blue-400 hover:text-white transition-colors">
+                    {copied['url'] ? 'COPIED!' : 'COPY URL'}
+                  </button>
+                </div>
+                <code className="text-blue-200 font-mono text-sm block truncate bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                  {endpointUrl || 'Detecting origin...'}
+                </code>
+              </div>
+
+              <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 hover:border-blue-500/50 transition-all group">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Header: x-api-key</span>
+                  <button onClick={() => copyToClipboard('sk_test_123456789', 'key')} className="text-[10px] font-bold text-blue-400 hover:text-white transition-colors">
+                    {copied['key'] ? 'COPIED!' : 'COPY KEY'}
+                  </button>
+                </div>
+                <code className="text-slate-300 font-mono text-sm block bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                  sk_test_123456789
+                </code>
+              </div>
+            </div>
+
+            {/* COLUMN 2: BASE64 GENERATOR */}
+            <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 flex flex-col justify-center">
+              <h3 className="text-white font-bold text-lg mb-2">Need audioBase64 for the tester?</h3>
+              <p className="text-slate-400 text-sm mb-6">Upload an MP3 here to get the exact raw Base64 string for your submission payload.</p>
+              
+              <div className="space-y-4">
+                <label className="flex items-center justify-center gap-3 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl cursor-pointer transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                  SELECT MP3 FILE
+                  <input type="file" accept=".mp3" className="hidden" onChange={handleBase64Convert} />
+                </label>
+
+                {tempBase64 && (
+                  <button onClick={() => copyToClipboard(tempBase64, 'b64')} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg shadow-emerald-500/20 animate-bounce-short">
+                    {copied['b64'] ? '✅ COPIED RAW STRING!' : '📋 COPY BASE64 STRING'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-[#0d1117] rounded-xl border border-slate-800 shadow-2xl overflow-hidden">
-        <div className="flex items-center px-4 py-3 bg-[#161b22] border-b border-slate-800">
-          <div className="flex gap-2 mr-4">
-             <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-             <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-             <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+      {/* REQUEST BODY EXAMPLE */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+          Submission Payload Format
+        </h3>
+        <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-inner">
+          <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between">
+            <span className="text-[10px] font-bold text-slate-500 uppercase">application/json</span>
           </div>
-          <span className="text-xs font-mono text-slate-400">server.ts</span>
+          <pre className="p-6 text-xs font-mono text-blue-300 overflow-x-auto whitespace-pre leading-relaxed">
+{`{
+  "language": "Tamil",
+  "audioFormat": "mp3",
+  "audioBase64": "${tempBase64 ? tempBase64.substring(0, 40) + '...' : 'PASTE_YOUR_COPIED_STRING_HERE'}"
+}`}
+          </pre>
         </div>
-        <pre className="p-6 overflow-x-auto text-sm font-mono leading-relaxed text-slate-300">
-          <code dangerouslySetInnerHTML={{ 
-            __html: codeString
-              .replace(/import/g, '<span class="text-pink-400">import</span>')
-              .replace(/from/g, '<span class="text-pink-400">from</span>')
-              .replace(/const/g, '<span class="text-blue-400">const</span>')
-              .replace(/async/g, '<span class="text-blue-400">async</span>')
-              .replace(/await/g, '<span class="text-purple-400">await</span>')
-              .replace(/return/g, '<span class="text-pink-400">return</span>')
-              .replace(/\/\/.*/g, match => `<span class="text-slate-500">${match}</span>`)
-              .replace(/'[^']*'/g, match => `<span class="text-green-300">${match}</span>`)
-              .replace(/`[^`]*`/g, match => `<span class="text-orange-300">${match}</span>`)
-           }}>
-          </code>
-        </pre>
       </div>
     </div>
   );
